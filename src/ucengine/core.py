@@ -12,14 +12,17 @@ import urllib
 
 from user import User
 
+
 class UCError(Exception):
     "Standard error coming from the server"
     def __init__(self, code, value):
         Exception.__init__(self)
         self.code = code
         self.value = value
+
     def __repr__(self):
         return "<UCError:%i %s>" % (self.code, self.value)
+
 
 class UCEngine(object):
     "The Server"
@@ -27,6 +30,7 @@ class UCEngine(object):
         self.host = host
         self.port = port
         self.users = []
+
     def request(self, method, path, body=None):
         "ask something to the server"
         connection = httplib.HTTPConnection(self.host, self.port)
@@ -44,6 +48,7 @@ class UCEngine(object):
             response = None
         connection.close()
         return resp.status, response
+
     def connect(self, user, credential):
         status, resp = self.request('POST', '/presence/', {
             'name'               : user.name,
@@ -55,16 +60,19 @@ class UCEngine(object):
         else:
             raise UCError(status, resp)
 
+
 class Eventualy(object):
     "Dummy object implementing event loop"
     def __init__(self):
         self.callbacks = {}
         self.event_pid = None
         self.ucengine = None
+
     def callback(self, key, cback):
         "register a new callback"
         self.callbacks[key] = cback
         return self
+
     def event_loop(self, url):
         "launch the backround event listening"
         def _listen():
@@ -81,9 +89,11 @@ class Eventualy(object):
                             pass
                             #print event['type'], event
         self.event_pid = gevent.spawn(_listen)
+
     def event_stop(self):
         "stop the event loop"
         self.event_pid.kill()
+
 
 class Session(Eventualy):
     def __init__(self, uce, uid, sid):
@@ -91,6 +101,7 @@ class Session(Eventualy):
         self.ucengine = uce
         self.uid = uid
         self.sid = sid
+
     def time(self):
         "What time is it"
         status, resp = self.ucengine.request('GET',
@@ -98,6 +109,7 @@ class Session(Eventualy):
                 'uid': self.uid, 'sid': self.sid}))
         assert status == 200
         return resp['result']
+
     def infos(self):
         "Infos about the server"
         status, resp = self.ucengine.request('GET',
@@ -105,6 +117,7 @@ class Session(Eventualy):
             'uid': self.uid, 'sid': self.sid}))
         assert status == 200
         return resp['result']
+
     def loop(self):
         self.event_loop('/live?%s' % urllib.urlencode({
                 'uid'   : self.uid,
@@ -112,7 +125,9 @@ class Session(Eventualy):
                 'mode': 'longpolling'
                 }))
         return self
+
     def close(self):
+
         "I'm leaving"
         status, resp = self.ucengine.request('DELETE',
             '/presence/%s?%s' % (self.sid, urllib.urlencode({
@@ -123,24 +138,26 @@ class Session(Eventualy):
         if status != 200:
             raise UCError(status, resp)
         self.event_stop()
+
     def save(self, data):
-        #assert data is a User. Visitor pattern.
+        """
+        Saves a User
+        """
+        #assert data is a User
+        if not isinstance(data, User):
+            raise UCError(400, "not sending a User instance to save")
         values = {
-                'name': "beuha",
-                'auth': 'machin',
-                'credential': 'popo',
-                'uid': self.uid,
-                'sid': self.sid,
-                #'metadata': data.metadata
-            }
-        if data.credential != None:
-            values['credential'] = data.credential
+            'uid': self.uid,
+            'sid': self.sid
+        }
+        values.update(data.__dict__)
         status, resp = self.ucengine.request('PUT',
             '/user',
             unicode_urlencode(values)
         )
         print status, resp
         assert status == 201
+
     def users(self):
         status, resp = self.ucengine.request('GET',
             '/user?%s' % urllib.urlencode({
@@ -155,6 +172,7 @@ class Session(Eventualy):
             uu.metadata = u['metadata']
             us.append(uu)
         return us
+
 
 def unicode_urlencode(params):
     clean = {}

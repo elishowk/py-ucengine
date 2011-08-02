@@ -9,6 +9,7 @@ class TestBasic(unittest.TestCase):
 
     def setUp(self):
         self.uce = UCEngine('localhost', 5280)
+
         self.victor = User('participant')
         self.session = self.uce.connect(self.victor, 'pwd').loop()
 
