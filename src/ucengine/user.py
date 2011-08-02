@@ -13,7 +13,7 @@ class User(object):
         self.uid = uid
         self.auth = auth
         self.metadata = {'nickname' : name}
-        if metadata:
+        if isinstance(metadata, dict):
             self.metadata.update(metadata)
 
     def __repr__(self):

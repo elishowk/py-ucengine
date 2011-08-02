@@ -10,7 +10,7 @@ monkey.patch_all()
 import httplib
 import urllib
 
-from user import User
+from user import UCUser
 
 
 class UCError(Exception):
@@ -22,7 +22,6 @@ class UCError(Exception):
 
     def __repr__(self):
         return "<UCError:%i %s>" % (self.code, self.value)
-
 
 class UCEngine(object):
     "The Server"
@@ -155,7 +154,7 @@ class Session(Eventualy):
             '/user',
             unicode_urlencode(values)
         )
-        print status, resp
+        #print status, resp
         assert status == 201
 
     def users(self):
@@ -167,7 +166,7 @@ class Session(Eventualy):
         assert status == 200
         us = []
         for u in resp['result']:
-            uu = User(u['name'])
+            uu = UCUser(u['name'])
             uu.uid = u['uid']
             uu.metadata = u['metadata']
             us.append(uu)
