@@ -2,8 +2,8 @@ import httplib
 import urllib
 import json
 
-from core import UCError
 from session import Session
+from core import UCError
 
 class UCEngine(object):
     "The Server"
@@ -38,5 +38,4 @@ class UCEngine(object):
             return Session(self, resp['result']['uid'], resp['result']['sid'])
         else:
             raise UCError(status, resp)
-
 
