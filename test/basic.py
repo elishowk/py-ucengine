@@ -1,16 +1,15 @@
 import sys
-import time
 import unittest
 import os.path
 sys.path.insert(1, os.path.abspath('src'))
-from ucengine import UCEngine, User
+from ucengine import UCEngine, UCUser, UCError
 
 class TestBasic(unittest.TestCase):
 
     def setUp(self):
-        self.uce = UCEngine('localhost', 5280)
+        self.uce = UCEngine('vps11240.ovh.net', 8052)
 
-        self.victor = User('participant')
+        self.victor = UCUser('participant')
         self.session = self.uce.connect(self.victor, 'pwd').loop()
 
     def tearDown(self):
@@ -20,7 +19,7 @@ class TestBasic(unittest.TestCase):
         self.assertTrue(None != self.session.sid)
 
     def test_bad_presence(self):
-        thierry = User('thierry')
+        thierry = UCUser('thierry')
         try:
             self.uce.connect(thierry, '****')
         except UCError as e:
@@ -36,15 +35,16 @@ class TestBasic(unittest.TestCase):
         self.assertEquals(u'localhost', infos['domain'])
 
     def test_modify_user(self):
-        owner = User('root')
+        owner = UCUser('root')
         session = self.uce.connect(owner, 'root')
         print session.users()
-        bob = User('Bob')
+        bob = UCUser('participant')
         bob.metadata['nickname'] = "Robert les grandes oreilles"
         session.save(bob)
+
     """
     def test_meeting(self):
-        thierry = User('participant2')
+        thierry = UCUser('participant2')
         sthierry = self.uce.connect(thierry, 'pwd')
         SESSION = 'demo'
         MSG = u"Bonjour monde"

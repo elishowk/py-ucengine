@@ -3,9 +3,8 @@ __author__ = "mathieu@garambrogne.net"
 from gevent import monkey
 monkey.patch_all()
 
-import urllib
 
-class User(object):
+class UCUser(object):
     "A user"
     def __init__(self, name, credential=None, uid=None, auth=None, metadata=None):
         self.name = name
@@ -17,4 +16,4 @@ class User(object):
             self.metadata.update(metadata)
 
     def __repr__(self):
-        return "<User name:%s>" % self.name
+        return "<UCUser name:%s>" % self.name
