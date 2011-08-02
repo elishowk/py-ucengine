@@ -38,7 +38,7 @@ class TestBasic(unittest.TestCase):
         owner = UCUser('root')
         session = self.uce.connect(owner, 'root')
         print session.users()
-        bob = UCUser('participant')
+        bob = UCUser('Bob')
         bob.metadata['nickname'] = "Robert les grandes oreilles"
         session.save(bob)
 
