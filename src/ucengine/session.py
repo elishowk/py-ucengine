@@ -126,7 +126,7 @@ class Session(Eventualy):
         us = []
         for u in resp['result']:
             us.append(
-                User(u['name'],
+                UCUser(u['name'],
                     metadata = u['metadata'],
                     uid = u['uid'])
             )

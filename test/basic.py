@@ -7,7 +7,8 @@ from ucengine import UCEngine, UCUser, UCError
 class TestBasic(unittest.TestCase):
 
     def setUp(self):
-        self.uce = UCEngine('localhost', 5280)
+        #self.uce = UCEngine('localhost', 5280)
+        self.uce = UCEngine('vps11240.ovh.net', 8052)
 
         self.victor = UCUser('participant')
         self.session = self.uce.connect(self.victor, 'pwd').loop()
