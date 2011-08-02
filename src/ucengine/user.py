@@ -6,7 +6,9 @@ monkey.patch_all()
 
 class UCUser(object):
     "A user"
+
     def __init__(self, name, credential=None, uid=None, auth=None, metadata=None):
+
         self.name = name
         self.credential = credential
         self.uid = uid

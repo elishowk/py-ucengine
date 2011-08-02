@@ -8,6 +8,7 @@ monkey.patch_all()
 
 class UCError(Exception):
     "Standard error coming from the server"
+
     def __init__(self, code, value):
         Exception.__init__(self)
         self.code = code
@@ -19,6 +20,7 @@ class UCError(Exception):
 
 class Eventualy(object):
     "Dummy object implementing event loop"
+
     def __init__(self):
         self.callbacks = {}
         self.event_pid = None
