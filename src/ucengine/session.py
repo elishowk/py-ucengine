@@ -44,7 +44,6 @@ class Session(Eventualy):
                 'uid': self.uid,
                 'sid': self.sid}))
                 )
-        #print resp
         if status != 200:
             raise UCError(status, resp)
         self.event_stop()
@@ -82,11 +81,8 @@ class Session(Eventualy):
         """
         create or update a user after a find by name
         """
-        values = {
-            'uid': self.uid,
-            'sid': self.sid
-        }
-        values.update(user.__dict__)
+        values = user.__dict__
+
         if user.uid is None:
             status, resp = self.ucengine.request('GET',
                 '/find/user/?%s' % urllib.urlencode({
@@ -99,19 +95,21 @@ class Session(Eventualy):
                     'by_id': user.uid,
                     'uid': self.uid,
                     'sid': self.sid}))
-        print "_save_user :"
-        print status, resp
         # user exists
         if status == 200:
             # merges user data
             uid = resp['result']['uid']
             resp['result'].update(values)
+            resp['result']['uid'] = self.uid
+            resp['result']['sid'] = self.sid
             status, resp = self.ucengine.request('PUT',
                 '/user/%s' % uid,
                 unicode_urlencode(resp['result'])
             )
             assert (status == 200), UCError(status, resp)
         elif status == 404:
+            values['uid'] = self.uid
+            values['sid'] = self.sid
             status, resp = self.ucengine.request('POST',
                 '/user',
                 unicode_urlencode(values)
