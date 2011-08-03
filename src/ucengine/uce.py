@@ -26,7 +26,7 @@ class UCEngine(object):
         try:
             response = json.loads(raw)
         except ValueError as e:
-            print raw
+            #print raw
             response = None
         connection.close()
         return resp.status, response
