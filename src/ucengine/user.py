@@ -12,7 +12,7 @@ class UCUser(object):
         self.name = name
         self.credential = credential
         self.uid = uid
-        self.auth = auth
+        self.auth = auth or 'password'
         self.metadata = {'nickname' : name}
         if isinstance(metadata, dict):
             self.metadata.update(metadata)
