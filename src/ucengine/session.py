@@ -17,7 +17,7 @@ class Session(Eventualy):
         status, resp = self.ucengine.request('GET',
             '/time?%s' % urllib.urlencode({
                 'uid': self.uid, 'sid': self.sid}))
-        assert status == 200
+        assert status == 200, UCError(status, resp)
         return resp['result']
 
     def infos(self):
@@ -25,7 +25,7 @@ class Session(Eventualy):
         status, resp = self.ucengine.request('GET',
             '/infos?%s' % urllib.urlencode({
             'uid': self.uid, 'sid': self.sid}))
-        assert status == 200
+        assert status == 200, UCError(status, resp)
         return resp['result']
 
     def loop(self):
@@ -71,49 +71,61 @@ class Session(Eventualy):
             status, resp = self.ucengine.request('PUT',
             '/meeting/all/%s' % data.name,
             unicode_urlencode(values))
-            assert status == 200
+            assert status == 200, UCError(status, resp)
         else:
             status, resp = self.ucengine.request('POST',
             '/meeting/all/',
             unicode_urlencode(values))
-            assert status == 201
+            assert status == 201, UCError(status, resp)
 
-    def _save_user(self, data):
+    def _save_user(self, user):
+        """
+        create or update a user after a find by name
+        """
         values = {
-                'name': data.name,
-                'auth': 'password',
-                'credential': None,
-                'uid': self.uid,
-                'sid': self.sid,
-                'metadata': data.metadata
-            }
-        #@TODO: don't do that if data.uid != None
-        status, resp =  self.ucengine.request('GET',
-            '/find/user/?%s' % urllib.urlencode({
-                'by_name': data.name,
-                'uid':self.uid,
-                'sid': self.sid}))
-        if status == 200:
-            data.uid = resp['result']['uid']
-            status, resp = self.ucengine.request('PUT',
-                '/user/%s' % data.uid,
-                unicode_urlencode(values)
-            )
-            assert status == 200
+            'uid': self.uid,
+            'sid': self.sid
+        }
+        values.update(user.__dict__)
+        if user.uid is None:
+            status, resp = self.ucengine.request('GET',
+                '/find/user/?%s' % urllib.urlencode({
+                    'by_name': user.name,
+                    'uid': self.uid,
+                    'sid': self.sid}))
         else:
+            status, resp = self.ucengine.request('GET',
+                '/find/user/?%s' % urllib.urlencode({
+                    'by_id': user.uid,
+                    'uid': self.uid,
+                    'sid': self.sid}))
+        print "_save_user :"
+        print status, resp
+        # user exists
+        if status == 200:
+            # merges user data
+            uid = resp['result']['uid']
+            resp['result'].update(values)
+            status, resp = self.ucengine.request('PUT',
+                '/user/%s' % uid,
+                unicode_urlencode(resp['result'])
+            )
+            assert (status == 200), UCError(status, resp)
+        elif status == 404:
             status, resp = self.ucengine.request('POST',
                 '/user',
                 unicode_urlencode(values)
             )
-            print status, resp
-            assert status == 201
+            assert (status == 201), UCError(status, resp)
+
 
     def delete(self, data):
         "Delete a user or a meeting"
         if issubclass(data.__class__, UCUser):
             status, resp = self.ucengine.request('DELETE',
                 '/user/%s?%s' % (data.uid, urllib.urlencode({'uid':self.uid, 'sid': self.sid})))
-            assert status == 200
+            assert status == 200, UCError(status, resp)
+
 
     def users(self):
         "Get all users"
@@ -122,7 +134,8 @@ class Session(Eventualy):
                 'uid': self.uid,
                 'sid': self.sid
         }))
-        assert status == 200
+        assert status == 200, UCError(status, resp)
+
         us = []
         for u in resp['result']:
             us.append(
