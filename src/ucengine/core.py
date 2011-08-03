@@ -50,7 +50,8 @@ class Eventualy(object):
 
     def event_stop(self):
         "stop the event loop"
-        self.event_pid.kill()
+        if self.event_pid is not None:
+            self.event_pid.kill()
 
 
 def unicode_urlencode(params):
