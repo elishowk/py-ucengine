@@ -116,8 +116,8 @@ class Session(Eventualy):
         Search user by ID
         """
         return self.ucengine.request('GET',
-            '/find/user?%s' % urllib.urlencode({
-                'by_id': uid,
+            '/find/user?%s' %urllib.urlencode({
+                'by_uid': uid,
                 'uid': self.uid,
                 'sid': self.sid}))
 

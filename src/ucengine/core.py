@@ -45,7 +45,6 @@ class Eventualy(object):
                             gevent.spawn(self.callbacks[event['type']], event)
                         else:
                             pass
-                            #print event['type'], event
         self.event_pid = gevent.spawn(_listen)
 
     def event_stop(self):

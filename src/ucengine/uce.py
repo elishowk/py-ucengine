@@ -63,6 +63,7 @@ class UCEngine(object):
         except ValueError:
             response = None
         connection.close()
+        return resp.status, response
 
     def connect(self, user, credential):
         status, resp = self.request('POST', '/presence/', {
