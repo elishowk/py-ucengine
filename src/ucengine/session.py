@@ -84,17 +84,19 @@ class Session(Eventualy):
         values = user.__dict__
 
         if user.uid is None:
-            status, resp = self.ucengine.request('GET',
-                '/find/user/?%s' % urllib.urlencode({
-                    'by_name': user.name,
-                    'uid': self.uid,
-                    'sid': self.sid}))
+            status, resp = self.find_user_by_name(user.name)
         else:
-            status, resp = self.ucengine.request('GET',
-                '/find/user/?%s' % urllib.urlencode({
-                    'by_id': user.uid,
-                    'uid': self.uid,
-                    'sid': self.sid}))
+            status, resp = self.find_user_by_id(user.uid)
+
+        if status == 404:
+            values['uid'] = self.uid
+            values['sid'] = self.sid
+            status, resp = self.ucengine.request('POST',
+                '/user',
+                unicode_urlencode(values)
+            )
+            assert (status == 201), UCError(status, resp)
+            return
         # user exists
         if status == 200:
             # merges user data
@@ -107,15 +109,27 @@ class Session(Eventualy):
                 unicode_urlencode(resp['result'])
             )
             assert (status == 200), UCError(status, resp)
-        elif status == 404:
-            values['uid'] = self.uid
-            values['sid'] = self.sid
-            status, resp = self.ucengine.request('POST',
-                '/user',
-                unicode_urlencode(values)
-            )
-            assert (status == 201), UCError(status, resp)
+            return
 
+    def find_user_by_id(self, uid):
+        """
+        Search user by ID
+        """
+        return self.ucengine.request('GET',
+            '/find/user?%s' % urllib.urlencode({
+                'by_id': uid,
+                'uid': self.uid,
+                'sid': self.sid}))
+
+    def find_user_by_name(self, name):
+        """
+        Search user by name
+        """
+        return self.ucengine.request('GET',
+                '/find/user?%s' % urllib.urlencode({
+                    'by_name': name,
+                    'uid': self.uid,
+                    'sid': self.sid}))
 
     def delete(self, data):
         "Delete a user or a meeting"
@@ -124,6 +138,17 @@ class Session(Eventualy):
                 '/user/%s?%s' % (data.uid, urllib.urlencode({'uid':self.uid, 'sid': self.sid})))
             assert status == 200, UCError(status, resp)
 
+    def user(self, uid):
+        "Get one user"
+        status, resp = self.ucengine.request('GET',
+            '/user/%s?%s' % ( uid,
+                urllib.urlencode({
+                    'uid': self.uid,
+                    'sid': self.sid
+                })
+            )
+        )
+        assert status == 200, UCError(status, resp)
 
     def users(self):
         "Get all users"
