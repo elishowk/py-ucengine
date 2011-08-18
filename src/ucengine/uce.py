@@ -54,8 +54,6 @@ class UCEngine(object):
             encodedbody = convert(body)
             connection.request(method, '/api/0.6%s' % path,
                 recursive_urlencode(encodedbody))
-            # print
-            print recursive_urlencode(encodedbody)
         else:
             connection.request(method, '/api/0.6%s' % path)
         resp = connection.getresponse()
@@ -65,8 +63,6 @@ class UCEngine(object):
         except ValueError:
             response = None
         connection.close()
-        print resp.status, response
-        return resp.status, response
 
     def connect(self, user, credential):
         status, resp = self.request('POST', '/presence/', {
