@@ -1,4 +1,8 @@
 import sys
+<<<<<<< HEAD
+=======
+#import time
+>>>>>>> 2f1b6804bc6a7218a9d04eb511d54d792008f342
 import unittest
 import os.path
 sys.path.insert(1, os.path.abspath('src'))
@@ -29,11 +33,17 @@ class TestBasic(unittest.TestCase):
             self.assertTrue(False)
 
     def test_time(self):
-        time = self.session.time()
+        stime = self.session.time()
+        self.assertEquals(long, type(stime))
 
     def test_infos(self):
         infos = self.session.infos()
         self.assertEquals(u'localhost', infos['domain'])
+
+    def test_user(self):
+        #FIXME missing "get user" for "participant"
+        v = self.session.user('participant')
+        self.assertTrue(None != v)
 
     def test_modify_user(self):
         owner = UCUser('root')
@@ -43,6 +53,12 @@ class TestBasic(unittest.TestCase):
         bob.metadata['nickname'] = "Robert les grandes oreilles"
         session.save(bob)
 
+<<<<<<< HEAD
+=======
+    def test_meeting(self):
+        meeting = self.session.meeting('demo')
+        self.assertTrue(None != meeting)
+>>>>>>> 2f1b6804bc6a7218a9d04eb511d54d792008f342
     """
     def test_meeting(self):
         thierry = UCUser('participant2')

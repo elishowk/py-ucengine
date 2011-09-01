@@ -1,8 +1,10 @@
 import urllib
 
 from core import Eventualy, unicode_urlencode, UCError
-from user import UCUser
-from meeting import Meeting
+
+from user import User, Client
+from meeting import Meeting, Channel
+
 
 class Session(Eventualy):
 
@@ -11,6 +13,10 @@ class Session(Eventualy):
         self.ucengine = uce
         self.uid = uid
         self.sid = sid
+
+    #FIXME handling authentification
+    def request(self, method, url, body={}, expect=200):
+        pass
 
     def time(self):
         "What time is it"
@@ -50,9 +56,9 @@ class Session(Eventualy):
 
     def save(self, data):
         "Save a user or a meeting"
-        if issubclass(data.__class__, UCUser):
+        if issubclass(data.__class__, Client):
             self._save_user(data)
-        if issubclass(data.__class__, Meeting):
+        if issubclass(data.__class__, Channel):
             self._save_meeting(data)
 
     def _save_meeting(self, data):
@@ -133,7 +139,7 @@ class Session(Eventualy):
 
     def delete(self, data):
         "Delete a user or a meeting"
-        if issubclass(data.__class__, UCUser):
+        if issubclass(data.__class__, Client):
             status, resp = self.ucengine.request('DELETE',
                 '/user/%s?%s' % (data.uid, urllib.urlencode({'uid':self.uid, 'sid': self.sid})))
             assert status == 200, UCError(status, resp)
@@ -162,8 +168,24 @@ class Session(Eventualy):
         us = []
         for u in resp['result']:
             us.append(
-                UCUser(u['name'],
+                User(u['name'],
                     metadata = u['metadata'],
                     uid = u['uid'])
             )
         return us
+
+    def meeting(self, name):
+        "Get a mmeting"
+        status, resp = self.ucengine.request('GET',
+            '/meeting/all/%s?%s' % (name, urllib.urlencode({
+                'uid': self.uid,
+                'sid': self.sid
+        })))
+        if status == 404:
+            return None
+        assert status == 200
+        m = resp['result']
+        return Meeting(name,
+            start = m['start_date'],
+            end = m['end_date'],
+            metadata = m['metadata'])

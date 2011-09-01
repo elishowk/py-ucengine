@@ -6,24 +6,24 @@ from datetime import datetime
 from session import Session
 from core import UCError
 
-def convert(data):
-    #if isinstance(data, unicode):
-    #    return str(data)
+def safe_jsonify(data):
+    """
+    Safe jsonification
+    """
     if isinstance(data, datetime):
         return data.isoformat()
     if isinstance(data, bool):
         return json.dumps(data)
     elif isinstance(data, dict):
-        return dict(map(convert, data.iteritems()))
+        return dict(map(safe_jsonify, data.iteritems()))
     elif isinstance(data, (list, tuple, set, frozenset)):
-        return type(data)(map(convert, data))
+        return type(data)(map(safe_jsonify, data))
     else:
         return data
 
 def recursive_urlencode(d):
     def recursion(d, base=None):
         pairs = []
-
         for key, value in d.items():
             if hasattr(value, 'values'):
                 pairs += recursion(value, key)
@@ -46,12 +46,12 @@ class UCEngine(object):
         self.port = port
         self.users = []
 
-    def request(self, method, path, body=None):
+    def request(self, method, path, body=None, expect=200):
         "ask something to the server"
         connection = httplib.HTTPConnection(self.host, self.port)
 
         if body != None:
-            encodedbody = convert(body)
+            encodedbody = safe_jsonify(body)
             connection.request(method, '/api/0.6%s' % path,
                 recursive_urlencode(encodedbody))
         else:
@@ -63,6 +63,7 @@ class UCEngine(object):
         except ValueError:
             response = None
         connection.close()
+        #FIXME throw an error or return the response result
         return resp.status, response
 
     def connect(self, user, credential):

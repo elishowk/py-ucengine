@@ -1,21 +1,25 @@
 __author__ = "mathieu@garambrogne.net"
 
-from gevent import monkey
-monkey.patch_all()
+class Client(object):
+    "A simple client"
 
-
-class UCUser(object):
-    "A user"
 
     def __init__(self, name, credential=None, uid=None, auth=None, metadata=None):
-
         self.name = name
+        self.metadata = metadata
         self.credential = credential
         self.uid = uid
         self.auth = auth or 'password'
-        self.metadata = {'nickname' : name}
-        if isinstance(metadata, dict):
-            self.metadata.update(metadata)
+
+
+class User(Client):
+    "A user"
+    def __init__(self, name, uid=None, credential=None, metadata={}):
+        if metadata.has_key('nickname'):
+            metadata['nickname'] = name
+        Client.__init__(self, name, uid, credential, metadata)
 
     def __repr__(self):
-        return "<UCUser name:%s>" % self.name
+        return "<User name:%s>" % self.name
+
+
