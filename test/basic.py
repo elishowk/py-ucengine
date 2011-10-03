@@ -1,20 +1,18 @@
 import sys
-<<<<<<< HEAD
-=======
 #import time
->>>>>>> 2f1b6804bc6a7218a9d04eb511d54d792008f342
 import unittest
 import os.path
 sys.path.insert(1, os.path.abspath('src'))
-from ucengine import UCEngine, UCUser, UCError
+from ucengine import UCEngine, User, UCError
+
+import httplib
+httplib.HTTPConnection.debuglevel = 1
 
 class TestBasic(unittest.TestCase):
 
     def setUp(self):
-        #self.uce = UCEngine('localhost', 5280)
-        self.uce = UCEngine('vps11240.ovh.net', 8052)
-
-        self.victor = UCUser('participant')
+        self.uce = UCEngine('localhost', 5280)
+        self.victor = User('participant')
         self.session = self.uce.connect(self.victor, 'pwd').loop()
 
     def tearDown(self):
@@ -24,7 +22,10 @@ class TestBasic(unittest.TestCase):
         self.assertTrue(None != self.session.sid)
 
     def test_bad_presence(self):
-        thierry = UCUser('thierry')
+        """
+        Connects with bad credentials
+        """
+        thierry = User('thierry')
         try:
             self.uce.connect(thierry, '****')
         except UCError as e:
@@ -33,35 +34,60 @@ class TestBasic(unittest.TestCase):
             self.assertTrue(False)
 
     def test_time(self):
+        """
+        Get server time
+        """
         stime = self.session.time()
-        self.assertEquals(long, type(stime))
+        self.assertEquals(int, type(stime))
 
     def test_infos(self):
+        """
+        Get server + domain infos
+        """
         infos = self.session.infos()
         self.assertEquals(u'localhost', infos['domain'])
 
     def test_user(self):
-        #FIXME missing "get user" for "participant"
-        v = self.session.user('participant')
+        """
+        Get user by UID
+        """
+        owner = User('root')
+        root_session = self.uce.connect(owner, 'root')
+        users =  root_session.users()
+        print users[0].uid
+        v = root_session.user(users[0].uid)
         self.assertTrue(None != v)
 
     def test_modify_user(self):
-        owner = UCUser('root')
-        session = self.uce.connect(owner, 'root')
-        print session.users()
-        bob = UCUser('Bob')
+        """
+        Modifies some user metadata
+        """
+        owner = User('root')
+        root_session = self.uce.connect(owner, 'root')
+        bob = User('Bob')
         bob.metadata['nickname'] = "Robert les grandes oreilles"
-        session.save(bob)
+        root_session.save(bob)
 
-<<<<<<< HEAD
-=======
+    def test_modify_user_role(self):
+        """
+        Adds then deletes a role to an existing user
+        Really basic since we cannot list user's roles with the current API
+        """
+        owner = User('root')
+        root_session = self.uce.connect(owner, 'root')
+        users =  root_session.users()
+        root_session.add_user_role( users[3].uid, "participant", "")
+        root_session.delete_user_role( users[3].uid, "participant", "")
+
     def test_meeting(self):
+        """
+        Get a meeting called "demo"
+        """
         meeting = self.session.meeting('demo')
         self.assertTrue(None != meeting)
->>>>>>> 2f1b6804bc6a7218a9d04eb511d54d792008f342
     """
     def test_meeting(self):
-        thierry = UCUser('participant2')
+        thierry = User('participant2')
         sthierry = self.uce.connect(thierry, 'pwd')
         SESSION = 'demo'
         MSG = u"Bonjour monde"
