@@ -53,13 +53,3 @@ class Eventualy(object):
         if self.event_pid is not None:
             self.event_pid.kill()
 
-
-def unicode_urlencode(params):
-    clean = {}
-    for k, v in params.items():
-        if isinstance(v, unicode):
-            clean[k] = v.encode('utf-8')
-        else:
-            clean[k] = v
-    return clean
-
