@@ -1,6 +1,6 @@
 import urllib
 
-from core import Eventualy, unicode_urlencode, UCError
+from core import Eventualy, UCError
 
 from user import User, Client
 from meeting import Meeting, Channel
@@ -74,13 +74,13 @@ class Session(Eventualy):
             urllib.urlencode({'uid':self.uid, 'sid': self.sid}))
         if status == 200:
             status, resp = self.ucengine.request('PUT',
-            '/meeting/all/%s' % data.name,
-            unicode_urlencode(values))
+                '/meeting/all/%s' % data.name,
+                values)
             assert status == 200, UCError(status, resp)
         else:
             status, resp = self.ucengine.request('POST',
-            '/meeting/all/',
-            unicode_urlencode(values))
+                '/meeting/all/',
+                values)
             assert status == 201, UCError(status, resp)
 
     def _save_user(self, user):
@@ -99,7 +99,7 @@ class Session(Eventualy):
             values['sid'] = self.sid
             status, resp = self.ucengine.request('POST',
                 '/user',
-                unicode_urlencode(values)
+                values
             )
             assert (status == 201), UCError(status, resp)
             return
@@ -112,11 +112,46 @@ class Session(Eventualy):
             resp['result']['sid'] = self.sid
             status, resp = self.ucengine.request('PUT',
                 '/user/%s' % uid,
-                unicode_urlencode(resp['result'])
+                resp['result']
             )
             assert (status == 200), UCError(status, resp)
             return
 
+
+    def add_user_role(self, uid, rolename, meeting):
+        """
+        Sets a role to a user into a meeting or all meetings
+        """ 
+        status, resp = self.ucengine.request('POST',
+            '/user/%s/roles' % uid,
+            {
+                'role': rolename,
+                'location': meeting,
+                'uid': self.uid,
+                'sid': self.sid
+            }
+        )
+        if status != 200:
+            raise UCError(status, resp)
+        return
+
+    def delete_user_role(self, uid, rolename, meeting):
+        """
+        Deletes a role to a user into a meeting or all meetings
+        """ 
+        if meeting !="":
+            status, resp = self.ucengine.request('DELETE',
+                '/user/%s/roles/%s/%s?%s' % (uid, rolename, meeting, urllib.urlencode({'uid':self.uid, 'sid': self.sid})),
+            )
+        else:
+            status, resp = self.ucengine.request('DELETE',
+                '/user/%s/roles/%s?%s' % (uid, rolename, urllib.urlencode({'uid':self.uid, 'sid': self.sid}))
+            )
+
+        if status != 200:
+            raise UCError(status, resp)
+        return
+    
     def find_user_by_id(self, uid):
         """
         Search user by ID
@@ -155,6 +190,7 @@ class Session(Eventualy):
             )
         )
         assert status == 200, UCError(status, resp)
+        return resp['result']
 
     def users(self):
         "Get all users"
