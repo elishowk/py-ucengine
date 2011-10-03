@@ -1,4 +1,5 @@
 import httplib
+httplib.DEBUG=True
 import urllib
 import json
 from datetime import datetime
@@ -18,6 +19,8 @@ def safe_jsonify(data):
         return dict(map(safe_jsonify, data.iteritems()))
     elif isinstance(data, (list, tuple, set, frozenset)):
         return type(data)(map(safe_jsonify, data))
+    elif isinstance(data, unicode):
+        return data.encode('utf-8')
     else:
         return data
 
