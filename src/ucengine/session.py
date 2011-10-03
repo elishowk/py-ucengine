@@ -132,8 +132,7 @@ class Session(Eventualy):
             }
         )
         if status != 200:
-            raise UCError(status, resp)
-        return
+            return UCError(status, resp)
 
     def delete_user_role(self, uid, rolename, meeting):
         """
@@ -149,8 +148,7 @@ class Session(Eventualy):
             )
 
         if status != 200:
-            raise UCError(status, resp)
-        return
+            return UCError(status, resp)
     
     def find_user_by_id(self, uid):
         """
