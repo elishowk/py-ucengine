@@ -30,16 +30,14 @@ def recursive_urlencode(d):
         for key, value in d.items():
             if hasattr(value, 'values'):
                 pairs += recursion(value, key)
-            if isinstance(value, list):
-                for sublevel in value:
-                    pairs += recursion("key[]", subvalue)
             else:
                 new_pair = None
                 if base:
-                    new_pair = "%s[%s]=%s" % (base, urllib.quote(unicode(key)), urllib.quote(unicode(value)))
+                    new_pair = "%s[%s]=%s" % (base, urllib.quote(key), urllib.quote(value))
                 else:
-                    new_pair = "%s=%s" % (urllib.quote(unicode(key)), urllib.quote(unicode(value)))
+                    new_pair = "%s=%s" % (urllib.quote(key), urllib.quote(value))
                 pairs.append(new_pair)
+        print pairs
         return pairs
     return '&'.join(recursion(d))
 
