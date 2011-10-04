@@ -71,7 +71,8 @@ class TestBasic(unittest.TestCase):
         root_session.save(bob)
         status, result = root_session.find_user_by_name('Bob')
         print result
-        self.assertTrue(isinstance(result['result']['metadata']['alist'], list), result)
+        self.assertTrue(('metadata' in result['result']))
+        self.assertTrue(isinstance(result['result']['metadata']['alist'], list))
 
 
     def test_modify_user_role(self):
