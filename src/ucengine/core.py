@@ -13,7 +13,7 @@ class UCError(Exception):
         self.code = code
         self.value = value
 
-    def __repr__(self):
+    def __str__(self):
         return "<UCError:%s %s>" % (self.code, self.value)
 
 
