@@ -23,7 +23,8 @@ class Session(Eventualy):
         status, resp = self.ucengine.request('GET',
             '/time?%s' % urllib.urlencode({
                 'uid': self.uid, 'sid': self.sid}))
-        assert status == 200, UCError(status, resp)
+        if status != 200:
+            raise UCError(status, resp)
         return resp['result']
 
     def infos(self):
@@ -31,7 +32,8 @@ class Session(Eventualy):
         status, resp = self.ucengine.request('GET',
             '/infos?%s' % urllib.urlencode({
             'uid': self.uid, 'sid': self.sid}))
-        assert status == 200, UCError(status, resp)
+        if status != 200:
+            raise UCError(status, resp)
         return resp['result']
 
     def loop(self):
@@ -76,12 +78,14 @@ class Session(Eventualy):
             status, resp = self.ucengine.request('PUT',
                 '/meeting/all/%s' % data.name,
                 values)
-            assert status == 200, UCError(status, resp)
+            if not status == 200:
+                raise UCError(status, resp)
         else:
             status, resp = self.ucengine.request('POST',
                 '/meeting/all/',
                 values)
-            assert status == 201, UCError(status, resp)
+            if not status == 201:
+                raise UCError(status, resp)
 
     def _save_user(self, user):
         """
@@ -101,7 +105,8 @@ class Session(Eventualy):
                 '/user',
                 values
             )
-            assert (status == 201), UCError(status, resp)
+            if not status == 201:
+                raise UCError(status, resp)
             return
         # user exists
         if status == 200:
@@ -114,7 +119,8 @@ class Session(Eventualy):
                 '/user/%s' % uid,
                 resp['result']
             )
-            assert (status == 200), UCError(status, resp)
+            if not status == 200:
+                raise UCError(status, resp)
             return
 
 
@@ -132,7 +138,7 @@ class Session(Eventualy):
             }
         )
         if status != 200:
-            return UCError(status, resp)
+            raise UCError(status, resp)
 
     def delete_user_role(self, uid, rolename, meeting):
         """
@@ -146,9 +152,8 @@ class Session(Eventualy):
             status, resp = self.ucengine.request('DELETE',
                 '/user/%s/roles/%s?%s' % (uid, rolename, urllib.urlencode({'uid':self.uid, 'sid': self.sid}))
             )
-
         if status != 200:
-            return UCError(status, resp)
+            raise UCError(status, resp)
     
     def find_user_by_id(self, uid):
         """
@@ -175,7 +180,8 @@ class Session(Eventualy):
         if issubclass(data.__class__, Client):
             status, resp = self.ucengine.request('DELETE',
                 '/user/%s?%s' % (data.uid, urllib.urlencode({'uid':self.uid, 'sid': self.sid})))
-            assert status == 200, UCError(status, resp)
+            if not status == 20:
+                raise UCError(status, resp)
 
     def user(self, uid):
         "Get one user"
@@ -187,7 +193,8 @@ class Session(Eventualy):
                 })
             )
         )
-        assert status == 200, UCError(status, resp)
+        if not status == 200:
+            raise UCError(status, resp)
         return resp['result']
 
     def users(self):
@@ -197,7 +204,8 @@ class Session(Eventualy):
                 'uid': self.uid,
                 'sid': self.sid
         }))
-        assert status == 200, UCError(status, resp)
+        if not status == 200:
+            raise UCError(status, resp)
 
         us = []
         for u in resp['result']:
@@ -217,7 +225,8 @@ class Session(Eventualy):
         })))
         if status == 404:
             return None
-        assert status == 200
+        if not status == 200:
+            raise UCError(status, resp)
         m = resp['result']
         return Meeting(name,
             start = m['start_date'],

@@ -8,15 +8,13 @@ monkey.patch_all()
 
 #FIXME one error per HTTP error : 400, 401, 404, 500
 class UCError(Exception):
-    "Standard error coming from the server"
-
+    "Standard error for ucengine server error"
     def __init__(self, code, value):
-        Exception.__init__(self)
         self.code = code
         self.value = value
 
     def __repr__(self):
-        return "<UCError:%i %s>" % (self.code, self.value)
+        return "<UCError:%s %s>" % (self.code, self.value)
 
 
 class Eventualy(object):
