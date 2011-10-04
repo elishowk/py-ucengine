@@ -101,7 +101,6 @@ class Session(Eventualy):
         if status == 404:
             values['uid'] = self.uid
             values['sid'] = self.sid
-            print values
             status, resp = self.ucengine.request('POST',
                 '/user',
                 values
