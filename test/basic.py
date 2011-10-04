@@ -66,8 +66,8 @@ class TestBasic(unittest.TestCase):
         root_session = self.uce.connect(owner, 'root')
         bob = User('Bob', credential="pwd", auth="password")
         bob.metadata['nickname'] = "Robert les grandes oreilles"
-        #bob.metadata['adict'] = { 'one': 2 }
-        bob.metadata['alist'] = ['testing', 'data', 'encoding']
+        bob.metadata['adict'] = { 'one': 2 }
+        bob.metadata['alist'] = "'testing','data','encoding'"
         root_session.save(bob)
         status, result = root_session.find_user_by_name('Bob')
         self.assertTrue(isinstance(result['result']['metadata']['alist'], unicode))
