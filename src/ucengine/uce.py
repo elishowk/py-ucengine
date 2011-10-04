@@ -48,22 +48,18 @@ class UCEngine(object):
         self.port = port
         self.users = []
 
-    def request(self, method, path, body=None, headers=None, expect=200):
+    def request(self, method, path, body=None, expect=200):
         "ask something to the server"
         connection = httplib.HTTPConnection(self.host, self.port)
-        if headers is None:
-            headers = {
-                "Content-type": "application/json",
-                "Accept": "application/json"
-            }
+        #headers = {
+            #"Content-type": "application/json",
+            #"Accept": "application/json"
+        #}
         if body != None:
-            if headers['Content-type']=="application/json":
-                encodedbody = json.dumps(body)
-            else:
-                encodedbody = recursive_urlencode(safe_jsonify(body))
-            connection.request(method, '/api/0.6%s' % path, encodedbody, headers)
+            encodedbody = recursive_urlencode(safe_jsonify(body))
+            connection.request(method, '/api/0.6%s' % path, encodedbody) #, headers)
         else:
-            connection.request(method, '/api/0.6%s' % path, None, headers)
+            connection.request(method, '/api/0.6%s' % path)
         resp = connection.getresponse()
         raw = resp.read()
         try:
@@ -75,11 +71,11 @@ class UCEngine(object):
         return resp.status, response
 
     def connect(self, user, credential):
-        status, resp = self.request('POST', '/presence/', body={
+        status, resp = self.request('POST', '/presence/', {
             'name'               : user.name,
             'credential'         : credential,
-            'metadata[nickname]' : user.name},
-            headers={'Content-type': 'application/x-www-form-urlencoded'}, expect=201)
+            'metadata[nickname]' : user.name}
+            )
         if status == 201:
             return Session(self, resp['result']['uid'], resp['result']['sid'])
         else:

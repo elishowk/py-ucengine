@@ -70,9 +70,13 @@ class TestBasic(unittest.TestCase):
         bob.metadata['alist'] = "'testing','data','encoding'"
         root_session.save(bob)
         status, result = root_session.find_user_by_name('Bob')
+<<<<<<< HEAD
         print result
         self.assertTrue(('metadata' in result['result']))
         self.assertTrue(isinstance(result['result']['metadata']['alist'], list))
+=======
+        self.assertTrue(isinstance(result['result']['metadata']['alist'], unicode))
+>>>>>>> parent of efeee28... test case test_modify_user
 
 
     def test_modify_user_role(self):
