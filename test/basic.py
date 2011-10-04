@@ -64,9 +64,14 @@ class TestBasic(unittest.TestCase):
         """
         owner = User('root')
         root_session = self.uce.connect(owner, 'root')
-        bob = User('Bob')
+        bob = User('Bob', credential="pwd", auth="password")
         bob.metadata['nickname'] = "Robert les grandes oreilles"
+        #bob.metadata['adict'] = { 'one': 2 }
+        bob.metadata['alist'] = ['testing', 'data', 'encoding']
         root_session.save(bob)
+        status, result = root_session.find_user_by_name('Bob')
+        self.assertTrue(isinstance(result['result']['metadata']['alist'], unicode))
+
 
     def test_modify_user_role(self):
         """
@@ -75,38 +80,16 @@ class TestBasic(unittest.TestCase):
         """
         owner = User('root')
         root_session = self.uce.connect(owner, 'root')
-        users =  root_session.users()
+        users = root_session.users()
         root_session.add_user_role( users[3].uid, "participant", "")
         root_session.delete_user_role( users[3].uid, "participant", "")
 
     def test_meeting(self):
         """
-        Get a meeting called "demo"
+        Get a meeting called 'demo'
         """
         meeting = self.session.meeting('demo')
         self.assertTrue(None != meeting)
-    """
-    def test_meeting(self):
-        thierry = User('participant2')
-        sthierry = self.uce.connect(thierry, 'pwd')
-        SESSION = 'demo'
-        MSG = u"Bonjour monde"
-        def _m(event):
-            self.assertEquals(event['metadata']['text'], MSG)
-            #print event
-        self.victor.meetings[SESSION].callback('chat.message.new', _m).join()
-        thierry.meetings[SESSION].callback('chat.message.new', _m).join()
-        thierry.meetings[SESSION].chat(MSG, 'fr')
-        self.victor.meetings[SESSION].async_chat(MSG, 'fr')
-        time.sleep(0.1) # waiting for events
-        # [FIXME] roster returns now uid, not name
-        # self.assertEquals(
-        #     set([u'victor.goya@af83.com', u'thierry.bomandouki@af83.com']),
-        #     self.victor.meetings[SESSION].roster)
-        #self.assertEquals(
-        #    set([u'#ucengine', u'#af83']),
-        #    self.victor.meetings[SESSION].twitter_hash_tags)
-"""
 
 if __name__ == '__main__':
     unittest.main()
