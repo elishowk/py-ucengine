@@ -105,7 +105,7 @@ class Session(Eventualy):
                     'auth': user.auth,
                     'credential': user.credential
                 }),
-                user.metadata
+                {'metadata': user.metadata}
             )
             if not status == 201:
                 raise UCError(status, resp)
@@ -125,7 +125,7 @@ class Session(Eventualy):
                         'credential': user.credential
                     })
                 ),
-                resp['result']['metadata']
+                {'metadata': resp['result']['metadata']}
             )
             if not status == 200:
                 raise UCError(status, resp)
