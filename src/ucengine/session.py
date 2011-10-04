@@ -91,19 +91,21 @@ class Session(Eventualy):
         """
         create or update a user after a find by name
         """
-        values = user.__dict__
-
         if user.uid is None:
             status, resp = self.find_user_by_name(user.name)
         else:
             status, resp = self.find_user_by_id(user.uid)
 
         if status == 404:
-            values['uid'] = self.uid
-            values['sid'] = self.sid
             status, resp = self.ucengine.request('POST',
-                '/user',
-                values
+                '/user?%s'%urllib.urlencode({
+                    'uid': self.uid,
+                    'sid': self.sid,
+                    'name': user.name,
+                    'auth': user.auth,
+                    'credential': user.credential
+                }),
+                user.metadata
             )
             if not status == 201:
                 raise UCError(status, resp)
@@ -112,12 +114,18 @@ class Session(Eventualy):
         if status == 200:
             # merges user data
             uid = resp['result']['uid']
-            resp['result'].update(values)
-            resp['result']['uid'] = self.uid
-            resp['result']['sid'] = self.sid
+            resp['result']['metadata'].update(user.metadata)
             status, resp = self.ucengine.request('PUT',
-                '/user/%s' % uid,
-                resp['result']
+                '/user/%s?%s' % (uid, 
+                    urllib.urlencode({
+                        'uid': self.uid,
+                        'sid': self.sid,
+                        'name': user.name,
+                        'auth': user.auth,
+                        'credential': user.credential
+                    })
+                ),
+                resp['result']['metadata']
             )
             if not status == 200:
                 raise UCError(status, resp)
@@ -129,13 +137,13 @@ class Session(Eventualy):
         Sets a role to a user into a meeting or all meetings
         """ 
         status, resp = self.ucengine.request('POST',
-            '/user/%s/roles' % uid,
-            {
+            '/user/%s/roles?%s' % (uid,
+            urllib.urlencode({
                 'role': rolename,
                 'location': meeting,
                 'uid': self.uid,
                 'sid': self.sid
-            }
+            }))
         )
         if status != 200:
             raise UCError(status, resp)
