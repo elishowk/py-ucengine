@@ -18,9 +18,14 @@ Install
 Test
 ----
 
-Lauch the server (Erlang side)
+Clone and launch the server (UCEngine Erlang side)
 
-	demo:start().
+    cd ucengine/
+    make start
+
+Insert some data
+
+    rel/ucengine/bin/demo.sh localhost
 
 And the test (Python side)
 
