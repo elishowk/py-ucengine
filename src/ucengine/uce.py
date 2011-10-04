@@ -16,7 +16,7 @@ def safe_jsonify(data):
     if isinstance(data, bool):
         return json.dumps(data)
     elif isinstance(data, dict):
-        return dict(map(safe_jsonify, data.iteritems()))
+        return dict(map(safe_jsonify, data.items()))
     elif isinstance(data, (list, tuple, set, frozenset)):
         return type(data)(map(safe_jsonify, data))
     elif isinstance(data, unicode):
@@ -33,11 +33,10 @@ def recursive_urlencode(d):
             else:
                 new_pair = None
                 if base:
-                    new_pair = "%s[%s]=%s" % (base, urllib.quote(key), urllib.quote(value))
+                    new_pair = "%s[%s]=%s" % (base, urllib.quote(str(key)), urllib.quote(str(value)))
                 else:
-                    new_pair = "%s=%s" % (urllib.quote(key), urllib.quote(value))
+                    new_pair = "%s=%s" % (urllib.quote(str(key)), urllib.quote(str(value)))
                 pairs.append(new_pair)
-        print pairs
         return pairs
     return '&'.join(recursion(d))
 
@@ -52,11 +51,13 @@ class UCEngine(object):
     def request(self, method, path, body=None, expect=200):
         "ask something to the server"
         connection = httplib.HTTPConnection(self.host, self.port)
-
+        #headers = {
+            #"Content-type": "application/json",
+            #"Accept": "application/json"
+        #}
         if body != None:
-            encodedbody = safe_jsonify(body)
-            connection.request(method, '/api/0.6%s' % path,
-                recursive_urlencode(encodedbody))
+            encodedbody = recursive_urlencode(safe_jsonify(body))
+            connection.request(method, '/api/0.6%s' % path, encodedbody) #, headers)
         else:
             connection.request(method, '/api/0.6%s' % path)
         resp = connection.getresponse()
