@@ -40,14 +40,7 @@ class TestBasic(unittest.TestCase):
         stime = self.session.time()
         self.assertEquals(int, type(stime))
 
-    def test_infos(self):
-        """
-        Get server + domain infos
-        """
-        infos = self.session.infos()
-        self.assertEquals(u'localhost', infos['domain'])
-
-    def test_user(self):
+    def test_get_user(self):
         """
         Get user by UID
         """
@@ -65,14 +58,39 @@ class TestBasic(unittest.TestCase):
         owner = User('root')
         root_session = self.uce.connect(owner, 'root')
         bob = User('Bob', credential="pwd", auth="password")
+        bob.metadata = {}
         bob.metadata['nickname'] = "Robert les grandes oreilles"
         bob.metadata['adict'] = { 'one': 2 }
         bob.metadata['alist'] = "'testing','data','encoding'"
         root_session.save(bob)
         status, result = root_session.find_user_by_name('Bob')
-        print result
         self.assertTrue(('metadata' in result['result']))
-        self.assertTrue(isinstance(result['result']['metadata']['alist'], list))
+        self.assertEqual(result['result']['metadata']['alist'], "'testing','data','encoding'")
+        # modifies only a metadata
+        bob2 = User('Bob', metadata={'alist':""}, credential="pwd")
+        root_session.save(bob2)
+        status, result = root_session.find_user_by_name('Bob')
+        self.assertEqual(result['result']['metadata']['nickname'], "Robert les grandes oreilles")
+        self.assertEqual(result['result']['metadata']['alist'], "")
+        # modifies NOTHING
+        bob3 = User('Bob', credential="pwd")
+        root_session.save(bob3)
+        status, result = root_session.find_user_by_name('Bob')
+        self.assertEqual(result['result']['metadata']['nickname'], "Robert les grandes oreilles")
+        self.assertEqual(result['result']['metadata']['alist'], "")
+
+    def test_delete_user(self):
+        """
+        Modifies some user metadata
+        """
+        owner = User('root')
+        root_session = self.uce.connect(owner, 'root')
+        status, result = root_session.find_user_by_name("Bob")
+        self.assertEqual(status, 200)
+        bob = User("Bob", credential = "pwd", uid=result['result']['uid'])
+        root_session.delete(bob)
+        status, result = root_session.find_user_by_name("Bob")
+        self.assertEqual(status, 404)
 
     def test_modify_user_role(self):
         """
