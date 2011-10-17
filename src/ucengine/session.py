@@ -72,32 +72,31 @@ class Session(Eventualy):
             'sid': self.sid,
          }
         status, resp = self.ucengine.request('GET',
-            '/meeting/all/%s?%s' % (data.name),
+            '/meeting/%s?%s' % (data.name),
             urllib.urlencode({'uid':self.uid, 'sid': self.sid}))
         if status == 200:
             status, resp = self.ucengine.request('PUT',
-                '/meeting/all/%s' % data.name,
+                '/meeting/%s' % data.name,
                 values)
             if not status == 200:
                 raise UCError(status, resp)
         else:
             status, resp = self.ucengine.request('POST',
-                '/meeting/all/',
+                '/meeting/',
                 values)
             if not status == 201:
                 raise UCError(status, resp)
 
     def _save_user(self, user):
         """
-        create or update a user after a find by name
+        create or update a user and its metadata
         """
-
         values = {}
-	if user.name is not None: values['name']= user.name
+        if user.name is not None: values['name']= user.name
         if user.auth is not None: values['auth']= user.auth
         if user.credential is not None: values['credential']= user.credential
         if user.metadata is not None: values['metadata']= user.metadata
-	
+
         if user.uid is None:
             status, resp = self.find_user_by_name(user.name)
         else:
@@ -117,6 +116,9 @@ class Session(Eventualy):
         if status == 200:
             # merges user data
             uid = resp['result']['uid']
+            if 'metadata' in values:
+                resp['result']['metadata'].update(values['metadata'])
+                del values['metadata']
             resp['result'].update(values)
             resp['result']['uid'] = self.uid
             resp['result']['sid'] = self.sid
@@ -127,7 +129,6 @@ class Session(Eventualy):
             if not status == 200:
                 raise UCError(status, resp)
             return
-
 
     def add_user_role(self, uid, rolename, meeting):
         """
@@ -181,12 +182,10 @@ class Session(Eventualy):
                     'sid': self.sid}))
 
     def delete(self, data):
-        "Delete a user or a meeting"
+        "Delete a user"
         if issubclass(data.__class__, Client):
             status, resp = self.ucengine.request('DELETE',
                 '/user/%s?%s' % (data.uid, urllib.urlencode({'uid':self.uid, 'sid': self.sid})))
-            if not status == 20:
-                raise UCError(status, resp)
 
     def user(self, uid):
         "Get one user"
@@ -224,7 +223,7 @@ class Session(Eventualy):
     def meeting(self, name):
         "Get a mmeting"
         status, resp = self.ucengine.request('GET',
-            '/meeting/all/%s?%s' % (name, urllib.urlencode({
+            '/meeting/%s?%s' % (name, urllib.urlencode({
                 'uid': self.uid,
                 'sid': self.sid
         })))
@@ -233,7 +232,4 @@ class Session(Eventualy):
         if not status == 200:
             raise UCError(status, resp)
         m = resp['result']
-        return Meeting(name,
-            start = m['start_date'],
-            end = m['end_date'],
-            metadata = m['metadata'])
+        return Meeting(name, metadata = m['metadata'])
