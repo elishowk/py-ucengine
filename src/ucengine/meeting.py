@@ -14,7 +14,7 @@ class Channel(Eventualy):
     def join(self):
         "Joining the meeting"
         status, resp = self.ucengine.request('POST',
-            '/meeting/all/%s/roster/' % self.meeting, {
+            '/meeting/%s/roster/' % self.meeting, {
                 'uid': self.user.uid,
                 'sid': self.user.sid
         })
@@ -39,11 +39,11 @@ class Channel(Eventualy):
 class Meeting(Channel):
     "A meeting (a room)"
 
-    def __init__(self, name, start=0, end="never", metadata={}):
+    def __init__(self, name, metadata=None):
         Eventualy.__init__(self)
         self.name = name
-        self.start = start
-        self.end = end
+        if metadata is None:
+            metadata = {}
         self.metadata = metadata
         self.roster = set()
         self.twitter_hash_tags = set()
