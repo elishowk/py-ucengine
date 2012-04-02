@@ -37,6 +37,8 @@ class UCEngine(object):
             resp = requests.put(self._get_url(path), params=params, data=body, headers=headers)
         if method == "DELETE":
             resp = requests.delete(self._get_url(path), params=params, data=body, headers=headers)
+        if resp.status_code==500:
+            return resp.status_code, resp.text
         return resp.status_code, json.loads(resp.text)
 
     def connect(self, user, credential, auth="password"):
