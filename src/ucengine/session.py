@@ -119,7 +119,7 @@ class Session(Eventualy):
         if user.credential is not None: values['credential']= user.credential
         #if user.metadata is not None:
         #    values['metadata'] = recursive_urlencode(safe_encode(user.metadata))
-
+        print user.metadata
         if user.uid is None:
             status, resp = self.find_user_by_name(user.name)
         else:
