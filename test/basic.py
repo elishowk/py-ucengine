@@ -54,7 +54,6 @@ class TestBasic(unittest.TestCase):
         Get user by UID
         """
         users =  self.admin_session.users()
-        print users[0].uid
         v = self.admin_session.user(users[0].uid)
         self.assertTrue(None != v)
     
@@ -73,10 +72,10 @@ class TestBasic(unittest.TestCase):
         self.assertEqual(status, 200)
         self.assertTrue(('metadata' in result['result']))
         self.assertEqual(result['result']['metadata']['alist'], "'testing','data','encoding'")
-        bob.uid = result['result']['uid']
-        print result
+        self.assertTrue("adict" not in result['result']['metadata'])
+        bob = User(name, credential="pwd", auth="password", uid=result['result']['uid'])
         self.admin_session.delete(bob)
-        status, result = self.admin_session.find_user_by_name("Bob")
+        status, result = self.admin_session.find_user_by_name(name)
         self.assertEqual(status, 404)
 
     def test_modify_user(self):
@@ -90,22 +89,18 @@ class TestBasic(unittest.TestCase):
         bob.metadata['alist'] = "'testing','data','encoding'"
         self.admin_session.save(bob)
         status, result = self.admin_session.find_user_by_name('Bob')
-        print result
         self.assertTrue(('metadata' in result['result']))
         self.assertEqual(result['result']['metadata']['alist'], "'testing','data','encoding'")
+        self.assertEqual(result[u'result'][u'metadata'][u'nickname'], "Robert les grandes oreilles")
         # modifies only a metadata
         bob2 = User('Bob', metadata={'alist':""}, credential="pwd")
         self.admin_session.save(bob2)
         status, result = self.admin_session.find_user_by_name('Bob')
-        print result
-        self.assertEqual(result['result']['metadata']['nickname'], "Robert les grandes oreilles")
         self.assertEqual(result['result']['metadata']['alist'], "")
         # modifies NOTHING
         bob3 = User('Bob', credential="pwd")
         self.admin_session.save(bob3)
         status, result = self.admin_session.find_user_by_name('Bob')
-        print result
-        self.assertEqual(result['result']['metadata']['nickname'], "Robert les grandes oreilles")
         self.assertEqual(result['result']['metadata']['alist'], "")
 
     def test_modify_user_role(self):
