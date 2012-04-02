@@ -2,42 +2,7 @@ from core import Eventualy, UCError
 
 from user import User, Client
 from meeting import Meeting, Channel
-import json
-import urllib
-from datetime import datetime
 
-def safe_encode(data):
-    """
-    Safe parameters encoding for user's metadata
-    """
-    if isinstance(data, datetime):
-        return data.isoformat()
-    if isinstance(data, bool):
-        return json.dumps(data)
-    elif isinstance(data, dict):
-        return dict(map(safe_encode, data.items()))
-    elif isinstance(data, (list, tuple, set, frozenset)):
-        return type(data)(map(safe_encode, data))
-    elif isinstance(data, unicode):
-        return data.encode('utf-8')
-    else:
-        return data
-
-def recursive_urlencode(d):
-    def recursion(d, base=None):
-        pairs = []
-        for key, value in d.items():
-            if hasattr(value, 'values'):
-                pairs += recursion(value, key)
-            else:
-                new_pair = None
-                if base:
-                    new_pair = "%s[%s]=%s" % (base, urllib.quote(str(key)), urllib.quote(str(value)))
-                else:
-                    new_pair = "%s=%s" % (urllib.quote(str(key)), urllib.quote(str(value)))
-                pairs.append(new_pair)
-        return pairs
-    return '&'.join(recursion(d))
 
 class Session(Eventualy):
 
@@ -83,29 +48,30 @@ class Session(Eventualy):
             self._save_meeting(data)
 
     def _save_meeting(self, data):
+        """
+        Updates or creates a meeting
+        """
+        params = { 
+            'uid':self.uid,
+            'sid': self.sid }
         status, resp = self.ucengine.request('GET',
             'meeting/%s'%data.name,
-            params={'uid':self.uid, 'sid': self.sid}
+            params=params
         )
         if status == 200:
+            params.update({'metadata': data.metadata})
             status, resp = self.ucengine.request('PUT',
                 'meeting/%s'%data.name,
-                body={
-                    'metadata': data.metadata,
-                    'uid': self.uid,
-                    'sid': self.sid,
-                })
+                params=params)
             if not status == 200:
                 raise UCError(status, resp)
-        else:
+        elif status == 404:
+            params.update({
+                'metadata': data.metadata,
+                'name': data.name })
             status, resp = self.ucengine.request('POST',
                 'meeting',
-                body={
-                    'name': data.name,
-                    'metadata': data.metadata,
-                    'uid': self.uid,
-                    'sid': self.sid,
-                })
+                params=params)
             if not status == 201:
                 raise UCError(status, resp)
 
@@ -114,24 +80,22 @@ class Session(Eventualy):
         create or update a user and its metadata
         """
         values = {}
+        values['uid'] = self.uid
+        values['sid'] = self.sid
         if user.name is not None: values['name']= user.name
         if user.auth is not None: values['auth']= user.auth
         if user.credential is not None: values['credential']= user.credential
-        #if user.metadata is not None:
-        #    values['metadata'] = recursive_urlencode(safe_encode(user.metadata))
-        print user.metadata
+        if user.metadata is not None: values['metadata'] = user.metadata
+
         if user.uid is None:
             status, resp = self.find_user_by_name(user.name)
         else:
             status, resp = self.find_user_by_id(user.uid)
-
+        # user does not exist
         if status == 404:
-            values['uid'] = self.uid
-            values['sid'] = self.sid
             status, resp = self.ucengine.request('POST',
                 'user',
                 params=values,
-                body=user.metadata
             )
             if not status == 201:
                 raise UCError(status, resp)
@@ -140,16 +104,10 @@ class Session(Eventualy):
         if status == 200:
             # merges user data
             uid = resp['result']['uid']
-            if 'metadata' in values:
-                resp['result']['metadata'].update(values['metadata'])
-                del values['metadata']
             resp['result'].update(values)
-            resp['result']['uid'] = self.uid
-            resp['result']['sid'] = self.sid
             status, resp = self.ucengine.request('PUT',
                 'user/%s' % uid,
-                params={'uid': self.uid, 'sid': self.sid},
-                body=resp['result']
+                params=resp['result']
             )
             if not status == 200:
                 raise UCError(status, resp)
