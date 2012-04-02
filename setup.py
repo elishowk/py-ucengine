@@ -3,7 +3,7 @@
 from setuptools import setup, find_packages
 
 setup(name='py-ucengine',
-      version='0.2',
+      version='0.6',
       package_dir={'': 'src'},
       url='http://github.com/athoune/py-ucengine',
       #scripts=[],
@@ -13,5 +13,5 @@ setup(name='py-ucengine',
       packages=['ucengine'],
       keywords= [''],
       zip_safe = True,
-      install_requires=["gevent"]
+      install_requires=["gevent", "requests"]
       )
