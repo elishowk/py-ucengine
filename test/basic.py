@@ -5,19 +5,27 @@ sys.path.insert(1, os.path.abspath('src'))
 from ucengine import UCEngine, User, UCError, Meeting
 from uuid import uuid4
 
-import httplib
-httplib.HTTPConnection.debuglevel = 1
+#import httplib
+#httplib.HTTPConnection.debuglevel = 1
 
 class TestBasic(unittest.TestCase):
 
     def setUp(self):
         #self.credentials = open("credentials.txt", "r")
         self.uce = UCEngine('http://localhost', 5280)
-        self.participant = User('test')
+        self.participant = User('test', credential="test", auth="password", metadata={"somekey": "somevalue"})
+        owner = User('admin')
+        self.admin_session  = self.uce.connect(owner, 'admin', "password")
+        self.admin_session.save(self.participant)
         self.session = self.uce.connect(self.participant, 'test', "password").loop()
 
     def tearDown(self):
+        """
+        Close sessions and delete the 'test' user
+        """
         self.session.close()
+        self.admin_session.delete(self.participant)
+        self.admin_session.close()
 
     def test_presence(self):
         self.assertTrue(None != self.session.sid)
@@ -45,90 +53,75 @@ class TestBasic(unittest.TestCase):
         """
         Get user by UID
         """
-        owner = User('admin')
-        admin_session = self.uce.connect(owner, 'admin', 'password')
-        users =  admin_session.users()
+        users =  self.admin_session.users()
         print users[0].uid
-        v = admin_session.user(users[0].uid)
+        v = self.admin_session.user(users[0].uid)
         self.assertTrue(None != v)
     
     def test_create_and_delete_user(self):
         """
-        Get user by UID
+        creates, finds, and deletes a user
         """
-        owner = User('admin')
-        admin_session = self.uce.connect(owner, 'admin', 'password')
         name = uuid4()
         bob = User(name, credential="pwd", auth="password")
         bob.metadata = {}
         bob.metadata['nickname'] = "Robert les grandes oreilles"
         bob.metadata['adict'] = { 'one': 2 }
         bob.metadata['alist'] = "'testing','data','encoding'"
-        admin_session.save(bob)
-        status, result = admin_session.find_user_by_name(name)
+        self.admin_session.save(bob)
+        status, result = self.admin_session.find_user_by_name(name)
+        self.assertEqual(status, 200)
         self.assertTrue(('metadata' in result['result']))
         self.assertEqual(result['result']['metadata']['alist'], "'testing','data','encoding'")
-        admin_session.delete(bob)
+        bob.uid = result['result']['uid']
+        print result
+        self.admin_session.delete(bob)
+        status, result = self.admin_session.find_user_by_name("Bob")
+        self.assertEqual(status, 404)
 
     def test_modify_user(self):
         """
-        Modify user's metadata
+        Modify user's metadata multiple times and save
         """
-        owner = User('admin')
-        admin_session = self.uce.connect(owner, 'admin', "password")
         bob = User('Bob', credential="pwd", auth="password")
         bob.metadata = {}
         bob.metadata['nickname'] = "Robert les grandes oreilles"
         bob.metadata['adict'] = { 'one': 2 }
         bob.metadata['alist'] = "'testing','data','encoding'"
-        admin_session.save(bob)
-        status, result = admin_session.find_user_by_name('Bob')
+        self.admin_session.save(bob)
+        status, result = self.admin_session.find_user_by_name('Bob')
+        print result
         self.assertTrue(('metadata' in result['result']))
         self.assertEqual(result['result']['metadata']['alist'], "'testing','data','encoding'")
         # modifies only a metadata
         bob2 = User('Bob', metadata={'alist':""}, credential="pwd")
-        admin_session.save(bob2)
-        status, result = admin_session.find_user_by_name('Bob')
+        self.admin_session.save(bob2)
+        status, result = self.admin_session.find_user_by_name('Bob')
+        print result
         self.assertEqual(result['result']['metadata']['nickname'], "Robert les grandes oreilles")
         self.assertEqual(result['result']['metadata']['alist'], "")
         # modifies NOTHING
         bob3 = User('Bob', credential="pwd")
-        admin_session.save(bob3)
-        status, result = admin_session.find_user_by_name('Bob')
+        self.admin_session.save(bob3)
+        status, result = self.admin_session.find_user_by_name('Bob')
+        print result
         self.assertEqual(result['result']['metadata']['nickname'], "Robert les grandes oreilles")
         self.assertEqual(result['result']['metadata']['alist'], "")
-
-    def test_delete_user(self):
-        """
-        Modifies some user metadata
-        """
-        owner = User('admin')
-        admin_session = self.uce.connect(owner, 'admin', "password")
-        status, result = admin_session.find_user_by_name("Bob")
-        self.assertEqual(status, 200)
-        bob = User("Bob", credential = "pwd", uid=result['result']['uid'])
-        admin_session.delete(bob)
-        status, result = admin_session.find_user_by_name("Bob")
-        self.assertEqual(status, 404)
 
     def test_modify_user_role(self):
         """
         Adds then deletes a role to an existing user
         Really basic since we cannot list user's roles with the current API
         """
-        owner = User('admin')
-        admin_session = self.uce.connect(owner, 'admin', "password")
-        users = admin_session.users()
-        admin_session.add_user_role( users[0].uid, "participant", "")
-        admin_session.delete_user_role( users[0].uid, "participant", "")
+        users = self.admin_session.users()
+        self.admin_session.add_user_role( users[0].uid, "participant", "")
+        self.admin_session.delete_user_role( users[0].uid, "participant", "")
 
     def test_meeting(self):
         """
-        Get a meeting called 'demo'
+        Creates then Gets a meeting called 'demo'
         """
-        owner = User('admin')
-        admin_session = self.uce.connect(owner, 'admin', "password")
-        admin_session.save(Meeting("demo", {}))
+        self.admin_session.save(Meeting("demo", {"toto": "toto"}))
         meeting = self.session.meeting('demo')
         self.assertTrue(None != meeting)
 
