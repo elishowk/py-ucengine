@@ -1,8 +1,7 @@
 __author__ = "mathieu@garambrogne.net"
 
-from gevent import monkey
 import gevent
-
+from gevent import monkey
 monkey.patch_all()
 
 

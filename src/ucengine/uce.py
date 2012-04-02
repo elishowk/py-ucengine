@@ -1,10 +1,47 @@
 import requests
 import json
+import urllib
+from datetime import datetime
 from session import Session
 from core import UCError
 
 VERSION = "0.6"
 
+def safe_encode(data):
+    """
+    Safe dict transformations
+    """
+    if isinstance(data, datetime):
+        return data.isoformat()
+    if isinstance(data, bool):
+        return json.dumps(data)
+    elif isinstance(data, dict):
+        return dict(map(safe_encode, data.items()))
+    elif isinstance(data, (list, tuple, set, frozenset)):
+        return type(data)(map(safe_encode, data))
+    elif isinstance(data, unicode):
+        return data.encode('utf-8')
+    else:
+        return data
+
+def recursive_urlencode(d):
+    """
+    Safe parameters encoding for user's metadata
+    """
+    def recursion(d, base=None):
+        pairs = []
+        for key, value in d.items():
+            if hasattr(value, 'values'):
+                pairs += recursion(value, key)
+            else:
+                new_pair = None
+                if base:
+                    new_pair = "%s[%s]=%s" % (base, urllib.quote(str(key)), urllib.quote(str(value)))
+                else:
+                    new_pair = "%s=%s" % (urllib.quote(str(key)), urllib.quote(str(value)))
+                pairs.append(new_pair)
+        return pairs
+    return '&'.join(recursion(d))
 
 class UCEngine(object):
     "The Server"
@@ -29,6 +66,10 @@ class UCEngine(object):
                 "Content-type": "application/json",
                 "Accept": "application/json"
             }
+        if body is not None:
+            body = json.dumps(body)
+        if params is not None:
+            params = recursive_urlencode(safe_encode(params))
         if method == "GET":
             resp = requests.get(self._get_url(path), params=params, data=body, headers=headers)
         if method == "POST":
