@@ -30,13 +30,15 @@ class Eventualy(object):
         self.callbacks[key] = cback
         return self
 
-    def event_loop(self, url):
+    def event_loop(self, url, params):
         "launch the backround event listening"
         def _listen():
-            start = 0
+            if 'start' not in params:
+                params['start'] = 0
+            start = params['start']
             while True:
                 status, resp = self.ucengine.request('GET',
-                    "%s&start=%i" % (url, start))
+                        "%s"%url, params=params)
                 if status == 200:
                     for event in resp['result']:
                         start = event['datetime'] + 1

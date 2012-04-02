@@ -1,10 +1,43 @@
-import urllib
-
 from core import Eventualy, UCError
 
 from user import User, Client
 from meeting import Meeting, Channel
+import json
+import urllib
+from datetime import datetime
 
+def safe_encode(data):
+    """
+    Safe parameters encoding for user's metadata
+    """
+    if isinstance(data, datetime):
+        return data.isoformat()
+    if isinstance(data, bool):
+        return json.dumps(data)
+    elif isinstance(data, dict):
+        return dict(map(safe_encode, data.items()))
+    elif isinstance(data, (list, tuple, set, frozenset)):
+        return type(data)(map(safe_encode, data))
+    elif isinstance(data, unicode):
+        return data.encode('utf-8')
+    else:
+        return data
+
+def recursive_urlencode(d):
+    def recursion(d, base=None):
+        pairs = []
+        for key, value in d.items():
+            if hasattr(value, 'values'):
+                pairs += recursion(value, key)
+            else:
+                new_pair = None
+                if base:
+                    new_pair = "%s[%s]=%s" % (base, urllib.quote(str(key)), urllib.quote(str(value)))
+                else:
+                    new_pair = "%s=%s" % (urllib.quote(str(key)), urllib.quote(str(value)))
+                pairs.append(new_pair)
+        return pairs
+    return '&'.join(recursion(d))
 
 class Session(Eventualy):
 
@@ -14,44 +47,30 @@ class Session(Eventualy):
         self.uid = uid
         self.sid = sid
 
-    #FIXME handling authentification
-    def request(self, method, url, body={}, expect=200):
-        pass
-
     def time(self):
         "What time is it"
         status, resp = self.ucengine.request('GET',
-            '/time?%s' % urllib.urlencode({
-                'uid': self.uid, 'sid': self.sid}))
-        if status != 200:
-            raise UCError(status, resp)
-        return resp['result']
-
-    def infos(self):
-        "Infos about the server"
-        status, resp = self.ucengine.request('GET',
-            '/infos?%s' % urllib.urlencode({
-            'uid': self.uid, 'sid': self.sid}))
+            'time', params= {
+                'uid': self.uid, 'sid': self.sid})
         if status != 200:
             raise UCError(status, resp)
         return resp['result']
 
     def loop(self):
         "Listen the events"
-        self.event_loop('/live?%s' % urllib.urlencode({
+        self.event_loop('live', params={
                 'uid'   : self.uid,
                 'sid'   : self.sid,
                 'mode': 'longpolling'
-                }))
+                })
         return self
 
     def close(self):
         "I'm leaving"
         status, resp = self.ucengine.request('DELETE',
-            '/presence/%s?%s' % (self.sid, urllib.urlencode({
+            'presence/%s' % self.sid, params={
                 'uid': self.uid,
-                'sid': self.sid}))
-                )
+                'sid': self.sid})
         if status != 200:
             raise UCError(status, resp)
         self.event_stop()
@@ -64,26 +83,29 @@ class Session(Eventualy):
             self._save_meeting(data)
 
     def _save_meeting(self, data):
-        values = {
-            'start': data.start,
-            'end': data.end,
-            'metadata': data.metadata,
-            'uid': self.uid,
-            'sid': self.sid,
-         }
         status, resp = self.ucengine.request('GET',
-            '/meeting/%s?%s' % (data.name),
-            urllib.urlencode({'uid':self.uid, 'sid': self.sid}))
+            'meeting/%s'%data.name,
+            params={'uid':self.uid, 'sid': self.sid}
+        )
         if status == 200:
             status, resp = self.ucengine.request('PUT',
-                '/meeting/%s' % data.name,
-                values)
+                'meeting/%s'%data.name,
+                body={
+                    'metadata': data.metadata,
+                    'uid': self.uid,
+                    'sid': self.sid,
+                })
             if not status == 200:
                 raise UCError(status, resp)
         else:
             status, resp = self.ucengine.request('POST',
-                '/meeting/',
-                values)
+                'meeting',
+                body={
+                    'name': data.name,
+                    'metadata': data.metadata,
+                    'uid': self.uid,
+                    'sid': self.sid,
+                })
             if not status == 201:
                 raise UCError(status, resp)
 
@@ -95,7 +117,8 @@ class Session(Eventualy):
         if user.name is not None: values['name']= user.name
         if user.auth is not None: values['auth']= user.auth
         if user.credential is not None: values['credential']= user.credential
-        if user.metadata is not None: values['metadata']= user.metadata
+        #if user.metadata is not None:
+        #    values['metadata'] = recursive_urlencode(safe_encode(user.metadata))
 
         if user.uid is None:
             status, resp = self.find_user_by_name(user.name)
@@ -106,8 +129,9 @@ class Session(Eventualy):
             values['uid'] = self.uid
             values['sid'] = self.sid
             status, resp = self.ucengine.request('POST',
-                '/user',
-                values
+                'user',
+                params=values,
+                body=user.metadata
             )
             if not status == 201:
                 raise UCError(status, resp)
@@ -123,8 +147,9 @@ class Session(Eventualy):
             resp['result']['uid'] = self.uid
             resp['result']['sid'] = self.sid
             status, resp = self.ucengine.request('PUT',
-                '/user/%s' % uid,
-                resp['result']
+                'user/%s' % uid,
+                params={'uid': self.uid, 'sid': self.sid},
+                body=resp['result']
             )
             if not status == 200:
                 raise UCError(status, resp)
@@ -135,8 +160,8 @@ class Session(Eventualy):
         Sets a role to a user into a meeting or all meetings
         """ 
         status, resp = self.ucengine.request('POST',
-            '/user/%s/roles' % uid,
-            {
+            'user/%s/roles' % uid,
+            body={
                 'role': rolename,
                 'location': meeting,
                 'uid': self.uid,
@@ -152,11 +177,13 @@ class Session(Eventualy):
         """ 
         if meeting !="":
             status, resp = self.ucengine.request('DELETE',
-                '/user/%s/roles/%s/%s?%s' % (uid, rolename, meeting, urllib.urlencode({'uid':self.uid, 'sid': self.sid})),
+                'user/%s/roles/%s/%s' % (uid, rolename, meeting), 
+                params = {'uid':self.uid, 'sid': self.sid}
             )
         else:
             status, resp = self.ucengine.request('DELETE',
-                '/user/%s/roles/%s?%s' % (uid, rolename, urllib.urlencode({'uid':self.uid, 'sid': self.sid}))
+                'user/%s/roles/%s' % (uid, rolename),
+                params = {'uid':self.uid, 'sid': self.sid}
             )
         if status != 200:
             raise UCError(status, resp)
@@ -166,37 +193,36 @@ class Session(Eventualy):
         Search user by ID
         """
         return self.ucengine.request('GET',
-            '/find/user?%s' %urllib.urlencode({
+            'find/user', params={
                 'by_uid': uid,
                 'uid': self.uid,
-                'sid': self.sid}))
+                'sid': self.sid})
 
     def find_user_by_name(self, name):
         """
         Search user by name
         """
         return self.ucengine.request('GET',
-                '/find/user?%s' % urllib.urlencode({
+                'find/user', params={
                     'by_name': name,
                     'uid': self.uid,
-                    'sid': self.sid}))
+                    'sid': self.sid})
 
     def delete(self, data):
         "Delete a user"
         if issubclass(data.__class__, Client):
             status, resp = self.ucengine.request('DELETE',
-                '/user/%s?%s' % (data.uid, urllib.urlencode({'uid':self.uid, 'sid': self.sid})))
+                'user/%s'%data.uid,
+                params={'uid':self.uid, 'sid': self.sid})
 
     def user(self, uid):
         "Get one user"
         status, resp = self.ucengine.request('GET',
-            '/user/%s?%s' % ( uid,
-                urllib.urlencode({
+            'user/%s' % uid, params= {
                     'uid': self.uid,
                     'sid': self.sid
                 })
-            )
-        )
+
         if not status == 200:
             raise UCError(status, resp)
         return resp['result']
@@ -204,10 +230,10 @@ class Session(Eventualy):
     def users(self):
         "Get all users"
         status, resp = self.ucengine.request('GET',
-            '/user?%s' % urllib.urlencode({
+            'user', params={
                 'uid': self.uid,
                 'sid': self.sid
-        }))
+        })
         if not status == 200:
             raise UCError(status, resp)
 
@@ -221,12 +247,12 @@ class Session(Eventualy):
         return us
 
     def meeting(self, name):
-        "Get a mmeting"
+        "Get a meeting"
         status, resp = self.ucengine.request('GET',
-            '/meeting/%s?%s' % (name, urllib.urlencode({
+            'meeting/%s' % name, params={
                 'uid': self.uid,
                 'sid': self.sid
-        })))
+        })
         if status == 404:
             return None
         if not status == 200:

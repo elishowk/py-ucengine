@@ -1,6 +1,5 @@
 __author__ = "mathieu@garambrogne.net"
 
-import urllib
 import gevent
 
 from core import Eventualy
@@ -14,21 +13,24 @@ class Channel(Eventualy):
     def join(self):
         "Joining the meeting"
         status, resp = self.ucengine.request('POST',
-            '/meeting/%s/roster/' % self.meeting, {
+            'meeting/%s/roster' % self.meeting, params={
                 'uid': self.user.uid,
                 'sid': self.user.sid
         })
         assert status == 200
-        self.event_loop('/live/%s?%s' % (self.meeting, urllib.urlencode({
+        self.event_loop('live/%s' % self.meeting, params={
             'uid'   : self.user.uid,
             'sid'   : self.user.sid,
             'mode': 'longpolling'
-        })))
+        })
         return self
 
     def send(self, event):
         status, resp = self.ucengine.request('POST',
-            '/event/%s' % self.channel, event)
+            'event/%s' % self.channel, body=event, params={
+                'uid': self.user.uid,
+                'sid': self.user.sid
+        })
         assert status == 201
         return resp['result']
 

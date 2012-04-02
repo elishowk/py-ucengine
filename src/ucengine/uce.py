@@ -1,44 +1,10 @@
-import httplib
-httplib.DEBUG=True
-import urllib
+import requests
 import json
-from datetime import datetime
-
 from session import Session
 from core import UCError
 
-def safe_jsonify(data):
-    """
-    Safe jsonification
-    """
-    if isinstance(data, datetime):
-        return data.isoformat()
-    if isinstance(data, bool):
-        return json.dumps(data)
-    elif isinstance(data, dict):
-        return dict(map(safe_jsonify, data.items()))
-    elif isinstance(data, (list, tuple, set, frozenset)):
-        return type(data)(map(safe_jsonify, data))
-    elif isinstance(data, unicode):
-        return data.encode('utf-8')
-    else:
-        return data
+VERSION = "0.6"
 
-def recursive_urlencode(d):
-    def recursion(d, base=None):
-        pairs = []
-        for key, value in d.items():
-            if hasattr(value, 'values'):
-                pairs += recursion(value, key)
-            else:
-                new_pair = None
-                if base:
-                    new_pair = "%s[%s]=%s" % (base, urllib.quote(str(key)), urllib.quote(str(value)))
-                else:
-                    new_pair = "%s=%s" % (urllib.quote(str(key)), urllib.quote(str(value)))
-                pairs.append(new_pair)
-        return pairs
-    return '&'.join(recursion(d))
 
 class UCEngine(object):
     "The Server"
@@ -48,34 +14,37 @@ class UCEngine(object):
         self.port = port
         self.users = []
 
-    def request(self, method, path, body=None, expect=200):
-        "ask something to the server"
-        connection = httplib.HTTPConnection(self.host, self.port)
-        #headers = {
-            #"Content-type": "application/json",
-            #"Accept": "application/json"
-        #}
-        if body != None:
-            encodedbody = recursive_urlencode(safe_jsonify(body))
-            connection.request(method, '/api/0.6%s' % path, encodedbody) #, headers)
-        else:
-            connection.request(method, '/api/0.6%s' % path)
-        resp = connection.getresponse()
-        raw = resp.read()
-        try:
-            response = json.loads(raw)
-        except ValueError:
-            response = None
-        connection.close()
-        #FIXME throw an error or return the response result
-        return resp.status, response
+    def _get_url(self, path):
+        """
+        Utility
+        """
+        return "/".join(["%s:%s"%(self.host, self.port), "api", VERSION, path])
 
-    def connect(self, user, credential):
-        status, resp = self.request('POST', '/presence/', {
-            'name'               : user.name,
-            'credential'         : credential,
-            'metadata[nickname]' : user.name}
-            )
+    def request(self, method, path, body=None, params=None, headers=None):
+        """
+        ask something to the server
+        """
+        if headers is None:
+            headers = {
+                "Content-type": "application/json",
+                "Accept": "application/json"
+            }
+        if method == "GET":
+            resp = requests.get(self._get_url(path), params=params, data=body, headers=headers)
+        if method == "POST":
+            resp = requests.post(self._get_url(path), params=params, data=body, headers=headers)
+        if method == "PUT":
+            resp = requests.put(self._get_url(path), params=params, data=body, headers=headers)
+        if method == "DELETE":
+            resp = requests.delete(self._get_url(path), params=params, data=body, headers=headers)
+        return resp.status_code, json.loads(resp.text)
+
+    def connect(self, user, credential, auth="password"):
+        status, resp = self.request('POST', 'presence', params={
+            'name'              : user.name,
+            'credential'        : credential,
+            'auth'              : auth
+        })
         if status == 201:
             return Session(self, resp['result']['uid'], resp['result']['sid'])
         else:
