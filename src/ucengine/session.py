@@ -119,7 +119,7 @@ class Session(Eventualy):
         """ 
         status, resp = self.ucengine.request('POST',
             'user/%s/roles' % uid,
-            body={
+            params={
                 'role': rolename,
                 'location': meeting,
                 'uid': self.uid,
@@ -167,7 +167,7 @@ class Session(Eventualy):
                     'sid': self.sid})
 
     def delete(self, data):
-        "Delete a user"
+        "Delete an object Meeting or User"
         if issubclass(data.__class__, Client):
             status, resp = self.ucengine.request('DELETE',
                 'user/%s'%data.uid,
