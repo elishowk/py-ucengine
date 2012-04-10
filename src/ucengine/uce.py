@@ -68,6 +68,8 @@ class UCEngine(object):
             }
         if body is not None:
             body = json.dumps(body)
+        else:
+            body = json.dumps({})
         if params is not None:
             params = recursive_urlencode(safe_encode(params))
         if method == "GET":
