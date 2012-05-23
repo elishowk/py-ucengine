@@ -3,6 +3,8 @@ from core import Eventualy, UCError
 from user import User, Client
 from meeting import Meeting, Channel
 
+import pprint
+pp = pprint.PrettyPrinter(indent=4)
 
 class Session(Eventualy):
 
@@ -102,12 +104,12 @@ class Session(Eventualy):
             return
         # user exists
         if status == 200:
-            # merges user data
-            uid = resp['result']['uid']
-            resp['result'].update(values)
+            # OBSOLETE merges user data
+            #resp['result'].update(values)
+            pp.pprint( values['metadata'] )
             status, resp = self.ucengine.request('PUT',
-                'user/%s' % uid,
-                params=resp['result']
+                'user/%s' % resp['result']['uid'],
+                params=values
             )
             if not status == 200:
                 raise UCError(status, resp)
