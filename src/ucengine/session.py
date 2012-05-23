@@ -104,9 +104,6 @@ class Session(Eventualy):
             return
         # user exists
         if status == 200:
-            # OBSOLETE merges user data
-            #resp['result'].update(values)
-            pp.pprint( values['metadata'] )
             status, resp = self.ucengine.request('PUT',
                 'user/%s' % resp['result']['uid'],
                 params=values
